@@ -1,0 +1,99 @@
+<div style="max-width:600px;margin:auto;font-family:sans-serif;">
+  <h2>YouTube Thumbnail Downloader</h2>
+  <p>Введите ссылку на YouTube-видео:</p>
+  <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=ID" style="width:100%;padding:10px;">
+  <button onclick="getThumbnails()" style="margin-top:10px;padding:10px 20px;">Получить миниатюры</button>
+
+  <div id="thumbnails" style="margin-top:20px;"></div>
+  <hr style="margin:30px 0;">
+
+<p style="font-size:14px;color:#666;text-align:center;">
+  Tool by 
+  <a href="https://dlyoutubethumbnail.com/" target="_blank" rel="noopener">
+    DLYouTubeThumbnail
+  </a>
+  — free YouTube thumbnail downloader
+</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<script>
+function extractVideoId(url) {
+  try {
+    let videoId = null;
+    const urlObj = new URL(url);
+    if (urlObj.hostname === 'youtu.be') {
+      videoId = urlObj.pathname.slice(1);
+    } else if (urlObj.hostname.includes('youtube.com')) {
+      videoId = urlObj.searchParams.get("v");
+    }
+    return videoId && videoId.length === 11 ? videoId : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function getThumbnails() {
+  const url = document.getElementById('youtubeUrl').value.trim();
+  const videoId = extractVideoId(url);
+  const output = document.getElementById('thumbnails');
+
+  if (!videoId) {
+    output.innerHTML = "<p style='color:red;'>Пожалуйста, введите корректный URL YouTube-видео.</p>";
+    return;
+  }
+
+  const resolutions = {
+    "default": `https://img.youtube.com/vi/${videoId}/default.jpg`,
+    "mqdefault": `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+    "hqdefault": `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+    "sddefault": `https://img.youtube.com/vi/${videoId}/sddefault.jpg`,
+    "maxresdefault": `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+  };
+
+  let html = "<h3>Миниатюры:</h3>";
+  for (let [key, src] of Object.entries(resolutions)) {
+    html += `
+      <div style="margin-bottom:20px;">
+        <p><strong>${key}</strong></p>
+        <img src="${src}" alt="${key}" style="max-width:100%;border:1px solid #ccc;">
+        <br>
+        <button onclick="downloadImage('${src}', '${videoId}_${key}.jpg')" style="margin-top:5px;">Скачать</button>
+      </div>`;
+  }
+
+  html += `<button onclick="downloadAllThumbnails('${videoId}')" style="margin-top:20px;padding:10px 20px;">📦 Скачать все миниатюры</button>`;
+  output.innerHTML = html;
+}
+
+async function downloadImage(url, filename) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Ошибка загрузки изображения");
+    const blob = await response.blob();
+    saveAs(blob, filename);
+  } catch (e) {
+    alert("Не удалось загрузить изображение: " + filename);
+  }
+}
+
+async function downloadAllThumbnails(videoId) {
+  const zip = new JSZip();
+  const resolutions = ["default", "mqdefault", "hqdefault", "sddefault", "maxresdefault"];
+  const baseUrl = `https://img.youtube.com/vi/${videoId}/`;
+
+  const imagePromises = resolutions.map(async (res) => {
+    const response = await fetch(baseUrl + res + ".jpg");
+    if (response.ok) {
+      const blob = await response.blob();
+      zip.file(`${videoId}_${res}.jpg`, blob);
+    }
+  });
+
+  await Promise.all(imagePromises);
+  const content = await zip.generateAsync({ type: "blob" });
+  saveAs(content, `${videoId}_thumbnails.zip`);
+}
+</script>
