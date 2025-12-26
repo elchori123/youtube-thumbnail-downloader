@@ -1,3 +1,6 @@
+🔗 Live tool: https://elchori123.github.io/youtube-thumbnail-downloader/  
+🌐 Official website: https://dlyoutubethumbnail.com/
+
 # YouTube Thumbnail Downloader
 
 Free online tool to download YouTube video thumbnails in all available resolutions:
